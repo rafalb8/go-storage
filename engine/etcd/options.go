@@ -4,11 +4,13 @@ import (
 	"context"
 
 	"github.com/rafalb8/go-storage/encoding"
+	"github.com/rafalb8/go-storage/internal/iter"
 	"github.com/rafalb8/go-storage/internal/net"
 )
 
 type EtcdOpts func(*Etcd) error
 
+// Connect to etcd endpoints
 func Endpoints(edp ...string) EtcdOpts {
 	return func(e *Etcd) error {
 		e.endpoints = edp
@@ -16,7 +18,8 @@ func Endpoints(edp ...string) EtcdOpts {
 	}
 }
 
-func Embed(loadBalancer, token string, test bool) EtcdOpts {
+// Start single-node embedded etcd
+func Embed(loadBalancer, token, dir string, test bool) EtcdOpts {
 	return func(e *Etcd) error {
 		peers := net.DNSResolve(loadBalancer)
 		log.Info("Found peers", peers)
@@ -26,7 +29,7 @@ func Embed(loadBalancer, token string, test bool) EtcdOpts {
 
 		e.endpoints = parseClusterClients(peers)
 
-		err := embedCfg(e, peers, token, test)
+		err := embedCfg(e, peers, token, dir, test)
 		if err != nil {
 			return err
 		}
@@ -46,4 +49,9 @@ func Context(ctx context.Context) EtcdOpts {
 		e.ctx, e.cancel = context.WithCancel(ctx)
 		return nil
 	}
+}
+
+func parseClusterClients(ips []string) []string {
+	log.Debug("Parsing cluster clients:", ips)
+	return iter.MapSlice(ips, func(ip string) string { return clientURL(ip) })
 }

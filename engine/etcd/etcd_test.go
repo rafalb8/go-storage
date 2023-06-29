@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	db = internal.Must(etcd.New(etcd.Embed("", "", true)))
+	db = internal.Must(etcd.New(etcd.Embed("", "", "/tmp/github.com/rafalb8/go-storage", true)))
 )
 
 func TestGetSet(t *testing.T) {

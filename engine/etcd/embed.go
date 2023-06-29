@@ -27,10 +27,10 @@ type etcdEmbed struct {
 	embed *embed.Etcd
 }
 
-func embedCfg(etcd *Etcd, peers []string, token string, test bool) error {
+func embedCfg(etcd *Etcd, peers []string, token, dir string, test bool) error {
 	cfg := embed.NewConfig()
 	// Basic
-	cfg.Dir = "/tmp/github.com/rafalb8/go-storage"
+	cfg.Dir = dir
 	nodeIdx, err := thisPeerPosition(peers)
 	if err != nil {
 		return err
@@ -69,29 +69,6 @@ func embedCfg(etcd *Etcd, peers []string, token string, test bool) error {
 
 func setupEmbed(etcd *Etcd) error {
 	e := etcd.server
-	/* TODO: Support multi node
-	// Try add new member
-	cl := Cluster(etcd.peers)
-	if cl != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-		defer cancel()
-
-		if members := cl.Members(ctx); members != nil {
-			log.Info("Members", members)
-
-			if _, exists := members[localIP]; !exists {
-				log.Info("Adding member", localIP)
-
-				err := cl.Add(ctx, localIP)
-				if err != nil {
-					log.Fatal("Cannot join cluster.", err)
-				}
-
-			}
-			server.cfg.ClusterState = embed.ClusterStateFlagExisting
-		}
-	} */
-
 	var err error
 	e.embed, err = embed.StartEtcd(e.cfg)
 	if err != nil {

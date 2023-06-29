@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/rafalb8/go-storage/engine/etcd"
+	"github.com/rafalb8/go-storage/engine/jsondb"
 	"github.com/rafalb8/go-storage/helpers"
 	"github.com/rafalb8/go-storage/internal"
 )
 
 var (
-	db     = internal.Must(etcd.New(etcd.Embed("", "", true)))
+	db     = internal.Must(jsondb.New("/tmp/github.com/rafalb8/go-storage/test.json"))
 	bucket = db.Bucket("env", "123", "element")
 )
 
