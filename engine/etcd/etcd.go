@@ -13,7 +13,6 @@ import (
 	"github.com/rafalb8/go-storage/encoding/value"
 	"github.com/rafalb8/go-storage/helpers"
 	"github.com/rafalb8/go-storage/internal"
-	"github.com/rafalb8/go-storage/internal/conv"
 	"github.com/rafalb8/go-storage/internal/iter"
 	"github.com/rafalb8/go-storage/options"
 
@@ -138,7 +137,7 @@ func (e *Etcd) PrintDebug(pfx string) error {
 
 		if m, ok := out[k].(map[interface{}]interface{}); ok {
 			// fix type for json marshal
-			out[k] = conv.FixMap(m)
+			out[k] = internal.FixMap(m)
 		}
 
 	}
