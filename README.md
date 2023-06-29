@@ -9,7 +9,7 @@
 ## Usage
 
 ```go
-import "github.com/rafalb8/go-storage/jsondb"
+import "github.com/rafalb8/go-storage/engine/jsondb"
 
 func connect() {
     db, err := jsondb.New("/path/to/file.json")
@@ -18,3 +18,7 @@ func connect() {
     fmt.Println(db.Get("key"))
 }
 ```
+
+## Planned features
+
+ - [ ] JsonDB in multiple files
