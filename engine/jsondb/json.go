@@ -26,10 +26,13 @@ var (
 )
 
 type JsonDB struct {
-	path     string                             // path to db file
-	data     maps.EventfulMaper[string, []byte] // database data
-	ticker   *time.Ticker                       // ticker for db file sync
-	encoding encoding.Coder                     // db key/value encoder
+	data maps.EventfulMaper[string, []byte] // database data
+
+	path       string // path to db
+	singleFile bool
+
+	ticker   *time.Ticker   // ticker for db file sync
+	encoding encoding.Coder // db key/value encoder
 
 	// prefix mutex map
 	pfxMutex maps.Maper[string, sync.Locker]
@@ -38,11 +41,29 @@ type JsonDB struct {
 	cancel context.CancelFunc
 }
 
-func New(dataPath string) (storage.Connection, error) {
+func New(opts ...JsonDBOpts) (storage.Connection, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+
+	j := &JsonDB{
+		ticker:   time.NewTicker(time.Second),
+		encoding: encoding.NewCoder(key.Simple, value.JSON),
+
+		pfxMutex: maps.New[string, sync.Locker](nil).Safe(),
+		cancel:   cancel,
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		err := opt(nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	var data map[string]any
-	if internal.PathExists(dataPath) {
+	if internal.PathExists(j.path) {
 		// Load db
-		file, err := os.Open(dataPath)
+		file, err := os.Open(j.path)
 		if err != nil {
 			return nil, err
 		}
@@ -53,23 +74,12 @@ func New(dataPath string) (storage.Connection, error) {
 		}
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	j.data = maps.New(iter.MapMap(data, func(v any) []byte {
+		b, _ := json.Marshal(v)
+		return b
+	})).Eventful(ctx, 10)
 
-	j := &JsonDB{
-		data: maps.New(
-			iter.MapMap(data, func(v any) []byte {
-				b, _ := json.Marshal(v)
-				return b
-			}),
-		).Eventful(ctx, 10),
-		path:     dataPath,
-		ticker:   time.NewTicker(time.Second),
-		encoding: encoding.NewCoder(key.Simple, value.JSON),
-
-		pfxMutex: maps.New[string, sync.Locker](nil).Safe(),
-		cancel:   cancel,
-	}
-
+	// Start save ticker
 	go func() {
 		for range j.ticker.C {
 			err := j.Save()

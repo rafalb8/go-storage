@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	db     = internal.Must(jsondb.New("/tmp/github.com/rafalb8/go-storage/test.json"))
+	db     = internal.Must(jsondb.New(jsondb.File("/tmp/github.com/rafalb8/go-storage/test.json")))
 	bucket = db.Bucket("env", "123", "element")
 )
 
