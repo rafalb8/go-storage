@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/rafalb8/go-maps/types"
-	"github.com/rafalb8/go-storage/etcd"
+	"github.com/rafalb8/go-storage/engine/etcd"
 	"github.com/rafalb8/go-storage/helpers"
 	"github.com/rafalb8/go-storage/internal"
 )

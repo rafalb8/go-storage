@@ -7,10 +7,9 @@ import (
 	"time"
 
 	"github.com/rafalb8/go-maps/types"
-	"github.com/rafalb8/go-storage/internal"
-
+	"github.com/rafalb8/go-storage/engine/jsondb"
 	"github.com/rafalb8/go-storage/helpers"
-	"github.com/rafalb8/go-storage/jsondb"
+	"github.com/rafalb8/go-storage/internal"
 )
 
 var (
