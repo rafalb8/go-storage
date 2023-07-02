@@ -1,6 +1,10 @@
 package jsondb
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/rafalb8/go-storage"
+)
 
 type JsonDBOpts func(*JsonDB) error
 
@@ -16,5 +20,12 @@ func Dir(dir string) JsonDBOpts {
 	return func(j *JsonDB) error {
 		j.path = dir
 		return fmt.Errorf("JsonDB.Dir: not supported")
+	}
+}
+
+func Logger(lg storage.Logger) JsonDBOpts {
+	return func(j *JsonDB) error {
+		j.lg = lg
+		return nil
 	}
 }

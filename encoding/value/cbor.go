@@ -5,11 +5,6 @@ import (
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/rafalb8/go-storage/encoding"
-	"github.com/rafalb8/go-storage/internal"
-)
-
-var (
-	log = internal.Logger()
 )
 
 type cborCoder struct {
@@ -20,11 +15,7 @@ func CBORCoder() encoding.ValueCoder {
 	opts := cbor.CanonicalEncOptions()
 	opts.Time = cbor.TimeUnixDynamic
 
-	enc, err := opts.EncMode()
-	if err != nil {
-		log.Fatal(err)
-	}
-
+	enc, _ := opts.EncMode()
 	return &cborCoder{
 		EncMode: enc,
 	}

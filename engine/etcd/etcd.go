@@ -21,10 +21,6 @@ import (
 	"go.etcd.io/etcd/client/v3/concurrency"
 )
 
-var (
-	log = internal.Logger()
-)
-
 type Etcd struct {
 	// Client fields
 
@@ -41,10 +37,16 @@ type Etcd struct {
 
 	// Storage driver encoding
 	encoding encoding.Coder
+
+	// Logger
+	lg storage.Logger
 }
 
 func New(opts ...EtcdOpts) (storage.Connection, error) {
-	etcd := &Etcd{encoding: encoding.NewCoder(key.Binary, value.CBOR)}
+	etcd := &Etcd{
+		encoding: encoding.NewCoder(key.Binary, value.CBOR),
+		lg: &internal.SimpleLogger{},
+	}
 
 	// Apply options
 	for _, opt := range opts {
@@ -66,7 +68,6 @@ func New(opts ...EtcdOpts) (storage.Connection, error) {
 	etcd.cfg = clientv3.Config{
 		Endpoints:   etcd.endpoints,
 		DialTimeout: time.Second * 5,
-		// Logger:      log.GetZapLogger(zapcore.ErrorLevel),
 	}
 
 	var err error
@@ -75,7 +76,7 @@ func New(opts ...EtcdOpts) (storage.Connection, error) {
 		return nil, err
 	}
 
-	log.Debug(fmt.Sprintf("%+v", etcd.cfg))
+	etcd.lg.Debug(fmt.Sprintf("%+v", etcd.cfg))
 
 	return etcd, nil
 }
@@ -97,13 +98,13 @@ func (e *Etcd) applyOptions(ops []storage.Option) []clientv3.OpOption {
 		case *options.TTLOption:
 			lease, err := e.client.Lease.Grant(e.ctx, (int64)(opt.Value/time.Second))
 			if err != nil {
-				log.Error(err)
+				e.lg.Error(err)
 				continue
 			}
 			out = append(out, clientv3.WithLease(lease.ID))
 
 		default:
-			log.Warn("Unsupported option: %T", opt)
+			e.lg.Warn("Unsupported option: %T", opt)
 		}
 
 	}
@@ -131,7 +132,7 @@ func (e *Etcd) PrintDebug(pfx string) error {
 		k := string(kv.Key)
 		out[k], err = helpers.Decode[any](e.encoding, kv.Value)
 		if err != nil {
-			log.Warn("decode", "err", err, "key", k, "value", string(kv.Value))
+			e.lg.Warn("decode", "err", err, "key", k, "value", string(kv.Value))
 			out[k] = string(kv.Value)
 		}
 
@@ -146,7 +147,7 @@ func (e *Etcd) PrintDebug(pfx string) error {
 }
 
 func (e *Etcd) Set(k string, v any, op ...storage.Option) error {
-	log.Debug("SET", k, v)
+	e.lg.Debug("SET", k, v)
 	kv := e.client.KV
 
 	data, err := e.encoding.EncodeValue(v)
@@ -159,7 +160,7 @@ func (e *Etcd) Set(k string, v any, op ...storage.Option) error {
 }
 
 func (e *Etcd) Get(k string, v any) error {
-	log.Debug("GET", k)
+	e.lg.Debug("GET", k)
 	kv := e.client.KV
 
 	resp, err := kv.Get(e.ctx, k)
@@ -174,7 +175,7 @@ func (e *Etcd) Get(k string, v any) error {
 }
 
 func (e *Etcd) Exists(k string) bool {
-	log.Debug("EXISTS", k)
+	e.lg.Debug("EXISTS", k)
 	kv := e.client.KV
 
 	resp, err := kv.Get(e.ctx, k, clientv3.WithKeysOnly())
@@ -186,7 +187,7 @@ func (e *Etcd) Exists(k string) bool {
 }
 
 func (e *Etcd) Delete(k string) error {
-	log.Debug("DELETE", k)
+	e.lg.Debug("DELETE", k)
 	kv := e.client.KV
 
 	_, err := kv.Delete(e.ctx, k)
@@ -194,7 +195,7 @@ func (e *Etcd) Delete(k string) error {
 }
 
 func (e *Etcd) Len(pfx string) (int, error) {
-	log.Debug("LEN", pfx)
+	e.lg.Debug("LEN", pfx)
 	kv := e.client.KV
 
 	resp, err := kv.Get(e.ctx, pfx, clientv3.WithPrefix(), clientv3.WithCountOnly())
@@ -207,7 +208,7 @@ func (e *Etcd) Len(pfx string) (int, error) {
 }
 
 func (e *Etcd) Keys(pfx string) ([]string, error) {
-	log.Debug("KEYS", pfx)
+	e.lg.Debug("KEYS", pfx)
 	kv := e.client.KV
 
 	resp, err := kv.Get(e.ctx, pfx, clientv3.WithPrefix(), clientv3.WithKeysOnly())
@@ -221,7 +222,7 @@ func (e *Etcd) Keys(pfx string) ([]string, error) {
 }
 
 func (e *Etcd) Values(pfx string) ([][]byte, error) {
-	log.Debug("VALUES", pfx)
+	e.lg.Debug("VALUES", pfx)
 	kv := e.client.KV
 
 	resp, err := kv.Get(e.ctx, pfx, clientv3.WithPrefix())
@@ -235,7 +236,7 @@ func (e *Etcd) Values(pfx string) ([][]byte, error) {
 }
 
 func (e *Etcd) Iter(ctx context.Context, pfx string) types.Iterator[string, []byte] {
-	log.Debug("ITER", pfx)
+	e.lg.Debug("ITER", pfx)
 	out := make(chan types.Item[string, []byte])
 	kv := e.client.KV
 
@@ -244,7 +245,7 @@ func (e *Etcd) Iter(ctx context.Context, pfx string) types.Iterator[string, []by
 
 		resp, err := kv.Get(ctx, pfx, clientv3.WithPrefix())
 		if err != nil {
-			log.Error(err)
+			e.lg.Error(err)
 			return
 		}
 
@@ -257,7 +258,7 @@ func (e *Etcd) Iter(ctx context.Context, pfx string) types.Iterator[string, []by
 }
 
 func (e *Etcd) Watch(ctx context.Context, pfx string) types.Watcher[string, []byte] {
-	log.Debug("WATCH", pfx)
+	e.lg.Debug("WATCH", pfx)
 
 	out := make(chan types.WatchMsg[string, []byte])
 
@@ -281,7 +282,7 @@ func (e *Etcd) Watch(ctx context.Context, pfx string) types.Watcher[string, []by
 }
 
 func (e *Etcd) Tx(pfx string, fn func(tx storage.Transactioner) error) error {
-	log.Debug("TX", pfx)
+	e.lg.Debug("TX", pfx)
 
 	sess, err := concurrency.NewSession(e.client)
 	if err != nil {

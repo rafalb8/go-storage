@@ -21,8 +21,7 @@ import (
 )
 
 var (
-	log                    = internal.Logger()
-	_   storage.Connection = (*JsonDB)(nil)
+	_ storage.Connection = (*JsonDB)(nil)
 )
 
 type JsonDB struct {
@@ -39,6 +38,9 @@ type JsonDB struct {
 
 	// cancel for data map event watcher/hub
 	cancel context.CancelFunc
+
+	// Logger
+	lg storage.Logger
 }
 
 func New(opts ...JsonDBOpts) (storage.Connection, error) {
@@ -50,6 +52,7 @@ func New(opts ...JsonDBOpts) (storage.Connection, error) {
 
 		pfxMutex: maps.New[string, sync.Locker](nil).Safe(),
 		cancel:   cancel,
+		lg:       &internal.SimpleLogger{},
 	}
 
 	// Apply options
@@ -84,7 +87,7 @@ func New(opts ...JsonDBOpts) (storage.Connection, error) {
 		for range j.ticker.C {
 			err := j.Save()
 			if err != nil {
-				log.Error(err)
+				j.lg.Error(err)
 			}
 		}
 	}()
@@ -138,7 +141,7 @@ func (j *JsonDB) Close() {
 	j.ticker.Stop()
 	err := j.Save()
 	if err != nil {
-		log.Error(err)
+		j.lg.Error(err)
 	}
 }
 
@@ -147,7 +150,7 @@ func (j *JsonDB) Bucket(bucket ...string) *storage.Bucket {
 }
 
 func (j *JsonDB) Set(k string, v any, op ...storage.Option) error {
-	log.Debug("SET", k, v)
+	j.lg.Debug("SET", k, v)
 	data, err := j.encoding.EncodeValue(v)
 	if err != nil {
 		return err
@@ -163,7 +166,7 @@ func (j *JsonDB) Set(k string, v any, op ...storage.Option) error {
 			}(opt.Value)
 
 		default:
-			log.Warn("Unsupported option: %T", opt)
+			j.lg.Warn("Unsupported option: %T", opt)
 		}
 	}
 
@@ -171,7 +174,7 @@ func (j *JsonDB) Set(k string, v any, op ...storage.Option) error {
 }
 
 func (j *JsonDB) Get(k string, v any) error {
-	log.Debug("GET", k)
+	j.lg.Debug("GET", k)
 	data, exists := j.data.GetFull(k)
 	if !exists {
 		return fmt.Errorf("get %s: %w", k, storage.ErrNotFound)
@@ -180,33 +183,33 @@ func (j *JsonDB) Get(k string, v any) error {
 }
 
 func (j *JsonDB) Exists(k string) bool {
-	log.Debug("EXISTS", k)
+	j.lg.Debug("EXISTS", k)
 	return j.data.Exists(k)
 }
 
 func (j *JsonDB) Delete(k string) error {
-	log.Debug("DELETE", k)
+	j.lg.Debug("DELETE", k)
 	j.data.Delete(k)
 	return nil
 }
 
 func (j *JsonDB) Len(pfx string) (int, error) {
-	log.Debug("LEN", pfx)
+	j.lg.Debug("LEN", pfx)
 	return maps.NewBucket[[]byte](j.data, pfx).Len(), nil
 }
 
 func (j *JsonDB) Keys(pfx string) ([]string, error) {
-	log.Debug("KEYS", pfx)
+	j.lg.Debug("KEYS", pfx)
 	return maps.NewBucket[[]byte](j.data, pfx).Keys(), nil
 }
 
 func (j *JsonDB) Values(pfx string) ([][]byte, error) {
-	log.Debug("VALUES", pfx)
+	j.lg.Debug("VALUES", pfx)
 	return maps.NewBucket[[]byte](j.data, pfx).Values(), nil
 }
 
 func (j *JsonDB) Iter(ctx context.Context, pfx string) types.Iterator[string, []byte] {
-	log.Debug("ITER", pfx)
+	j.lg.Debug("ITER", pfx)
 	out := make(chan types.Item[string, []byte])
 	go func() {
 		defer close(out)
@@ -221,7 +224,7 @@ func (j *JsonDB) Iter(ctx context.Context, pfx string) types.Iterator[string, []
 }
 
 func (j *JsonDB) Watch(ctx context.Context, pfx string) types.Watcher[string, []byte] {
-	log.Debug("WATCH", pfx)
+	j.lg.Debug("WATCH", pfx)
 	out := make(chan types.WatchMsg[string, []byte])
 	go func() {
 		defer close(out)
@@ -238,7 +241,7 @@ func (j *JsonDB) Watch(ctx context.Context, pfx string) types.Watcher[string, []
 }
 
 func (j *JsonDB) Tx(pfx string, fn func(tx storage.Transactioner) error) error {
-	log.Debug("TX", pfx)
+	j.lg.Debug("TX", pfx)
 
 	var mtx sync.Locker
 	j.pfxMutex.Commit(func(data map[string]sync.Locker) {

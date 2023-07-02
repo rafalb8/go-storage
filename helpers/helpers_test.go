@@ -84,7 +84,10 @@ func TestValuesHelper(t *testing.T) {
 		t.Error(err)
 	}
 
-	values := helpers.Values[int](bucket)
+	values, err := helpers.Values[int](bucket)
+	if err != nil {
+		t.Error(err)
+	}
 
 	if len(values) < 2 {
 		t.Error("Len < 2")

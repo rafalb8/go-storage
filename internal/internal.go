@@ -4,26 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	"go.uber.org/zap"
 )
-
-var (
-	logger, _ = zap.NewProduction()
-)
-
-func Logger() *zap.SugaredLogger {
-	return logger.Sugar()
-}
 
 func PrintJSON(v interface{}) {
 	out, _ := json.MarshalIndent(v, "", "  ")
-	logger.Info(string(out))
+	fmt.Println(string(out))
 }
 
 func Must[T any](v T, err error) T {
 	if err != nil {
-		logger.Sugar().Fatal(err)
+		panic(err)
 	}
 	return v
 }

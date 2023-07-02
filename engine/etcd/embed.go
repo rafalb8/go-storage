@@ -5,13 +5,10 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"reflect"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/rafalb8/go-storage/internal"
 	"github.com/rafalb8/go-storage/internal/iter"
 	"github.com/rafalb8/go-storage/internal/net"
 
@@ -41,8 +38,6 @@ func embedCfg(etcd *Etcd, peers []string, token, dir string, test bool) error {
 	cfg.Logger = "zap"
 	if test {
 		cfg.LogLevel = "error"
-	} else {
-		cfg.ZapLoggerBuilder = embed.NewZapLoggerBuilder(internal.Logger().Desugar())
 	}
 
 	// Peers
@@ -59,8 +54,8 @@ func embedCfg(etcd *Etcd, peers []string, token, dir string, test bool) error {
 		cfg.ClusterState = embed.ClusterStateFlagExisting
 	}
 
-	log.Info("Cluster State:", cfg.ClusterState)
-	log.Debug(fmt.Sprintf("%+v", cfg))
+	etcd.lg.Info("Cluster State:", cfg.ClusterState)
+	etcd.lg.Debug(fmt.Sprintf("%+v", cfg))
 
 	// Set cfg
 	etcd.server = &etcdEmbed{cfg: cfg}
@@ -77,7 +72,7 @@ func setupEmbed(etcd *Etcd) error {
 
 	select {
 	case <-e.embed.Server.ReadyNotify():
-		log.Info("Server is ready!")
+		etcd.lg.Info("Server is ready!")
 		return nil
 
 	case <-time.After(60 * time.Second):
@@ -107,7 +102,6 @@ func thisPeerPosition(peers []string) (string, error) {
 }
 
 func parseIPs(ips []string, format func(string) string) []url.URL {
-	log.Debug("Parsing to url.URL:", ips, "format", runtime.FuncForPC(reflect.ValueOf(format).Pointer()).Name())
 	return iter.MapSlice(ips, func(ip string) url.URL {
 		u, err := url.Parse(format(ip))
 		if err != nil {
@@ -118,7 +112,6 @@ func parseIPs(ips []string, format func(string) string) []url.URL {
 }
 
 func parseInitialCluster(ips []string) string {
-	log.Debug("Parsing to initial cluster:", ips)
 	i := -1
 	return strings.Join(iter.MapSlice(ips, func(ip string) string {
 		i++

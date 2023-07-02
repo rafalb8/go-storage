@@ -12,6 +12,15 @@ var (
 	ErrNotFound = errors.New("obj not found")
 )
 
+type Logger interface {
+	Debug(args ...any)
+	Warn(args ...any)
+	Info(args ...any)
+	Error(args ...any)
+	Fatal(args ...any)
+}
+
+// Set option, for use with etcd
 type Option interface{}
 
 type Setter interface {

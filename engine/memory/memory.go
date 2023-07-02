@@ -18,8 +18,7 @@ import (
 )
 
 var (
-	_   storage.Connection = (*InMemory)(nil)
-	log                    = internal.Logger()
+	_ storage.Connection = (*InMemory)(nil)
 )
 
 type InMemory struct {
@@ -31,9 +30,12 @@ type InMemory struct {
 
 	// cancel for data map event watcher/hub
 	cancel context.CancelFunc
+
+	// Logger
+	lg storage.Logger
 }
 
-func New() (storage.Connection, error) {
+func New(opts ...MemoryOpts) (storage.Connection, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	m := &InMemory{
@@ -42,7 +44,17 @@ func New() (storage.Connection, error) {
 
 		pfxMutex: maps.New[string, sync.Locker](nil).Safe(),
 		cancel:   cancel,
+		lg:       &internal.SimpleLogger{},
 	}
+
+	// Apply options
+	for _, opt := range opts {
+		err := opt(m)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return m, nil
 }
 
@@ -75,7 +87,7 @@ func (m *InMemory) Bucket(bucket ...string) *storage.Bucket {
 }
 
 func (m *InMemory) Set(k string, v any, op ...storage.Option) error {
-	log.Debug("SET", k, v)
+	m.lg.Debug("SET", k, v)
 	data, err := m.encoding.EncodeValue(v)
 	if err != nil {
 		return err
@@ -91,14 +103,14 @@ func (m *InMemory) Set(k string, v any, op ...storage.Option) error {
 			}(opt.Value)
 
 		default:
-			log.Warn("Unsupported option: %T", opt)
+			m.lg.Warn("Unsupported option: %T", opt)
 		}
 	}
 	return nil
 }
 
 func (m *InMemory) Get(k string, v any) error {
-	log.Debug("GET", k)
+	m.lg.Debug("GET", k)
 	data, exists := m.data.GetFull(k)
 	if !exists {
 		return fmt.Errorf("get %s: %w", k, storage.ErrNotFound)
@@ -107,33 +119,33 @@ func (m *InMemory) Get(k string, v any) error {
 }
 
 func (m *InMemory) Exists(k string) bool {
-	log.Debug("EXISTS", k)
+	m.lg.Debug("EXISTS", k)
 	return m.data.Exists(k)
 }
 
 func (m *InMemory) Delete(k string) error {
-	log.Debug("DELETE", k)
+	m.lg.Debug("DELETE", k)
 	m.data.Delete(k)
 	return nil
 }
 
 func (m *InMemory) Len(pfx string) (int, error) {
-	log.Debug("LEN", pfx)
+	m.lg.Debug("LEN", pfx)
 	return maps.NewBucket[[]byte](m.data, pfx).Len(), nil
 }
 
 func (m *InMemory) Keys(pfx string) ([]string, error) {
-	log.Debug("KEYS", pfx)
+	m.lg.Debug("KEYS", pfx)
 	return maps.NewBucket[[]byte](m.data, pfx).Keys(), nil
 }
 
 func (m *InMemory) Values(pfx string) ([][]byte, error) {
-	log.Debug("VALUES", pfx)
+	m.lg.Debug("VALUES", pfx)
 	return maps.NewBucket[[]byte](m.data, pfx).Values(), nil
 }
 
 func (m *InMemory) Iter(ctx context.Context, pfx string) types.Iterator[string, []byte] {
-	log.Debug("ITER", pfx)
+	m.lg.Debug("ITER", pfx)
 	out := make(chan types.Item[string, []byte])
 	go func() {
 		defer close(out)
@@ -148,7 +160,7 @@ func (m *InMemory) Iter(ctx context.Context, pfx string) types.Iterator[string, 
 }
 
 func (m *InMemory) Watch(ctx context.Context, pfx string) types.Watcher[string, []byte] {
-	log.Debug("WATCH", pfx)
+	m.lg.Debug("WATCH", pfx)
 	out := make(chan types.WatchMsg[string, []byte])
 	go func() {
 		defer close(out)
@@ -165,7 +177,7 @@ func (m *InMemory) Watch(ctx context.Context, pfx string) types.Watcher[string, 
 }
 
 func (m *InMemory) Tx(pfx string, fn func(tx storage.Transactioner) error) error {
-	log.Debug("TX", pfx)
+	m.lg.Debug("TX", pfx)
 
 	var mtx sync.Locker
 	m.pfxMutex.Commit(func(data map[string]sync.Locker) {

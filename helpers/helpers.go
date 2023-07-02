@@ -2,15 +2,11 @@ package helpers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/rafalb8/go-maps/types"
 	"github.com/rafalb8/go-storage"
 	"github.com/rafalb8/go-storage/encoding"
-	"github.com/rafalb8/go-storage/internal"
-)
-
-var (
-	log = internal.Logger()
 )
 
 type WatchHelper interface {
@@ -27,7 +23,12 @@ func Watch[T any](ctx context.Context, tx WatchHelper, key string) types.Watcher
 		for event := range tx.Watch(ctx, key) {
 			value, err := Decode[T](tx.Encoding(), event.Value)
 			if err != nil {
-				log.Error(err)
+				out <- types.WatchMsg[string, T]{
+					Event: types.ErrorEvent,
+					Item: types.Item[string, T]{
+						Key: fmt.Sprintf("error decoding %s, %s", event.Key, err),
+					},
+				}
 			}
 
 			// Repackage event
@@ -53,7 +54,7 @@ func Iter[T any](ctx context.Context, tx storage.Transactioner) <-chan types.Ite
 		for event := range tx.Iter(ctx, "") {
 			value, err := Decode[T](tx.Encoding(), event.Value)
 			if err != nil {
-				log.Error(err)
+				out <- types.Item[string, T]{Key: fmt.Sprintf("error decoding %s, %s", event.Key, err)}
 			}
 			out <- types.Item[string, T]{Key: event.Key, Value: value}
 		}
@@ -70,10 +71,10 @@ func Map[T any](tx storage.Bucketer) map[string]T {
 	return out
 }
 
-func Values[T any](tx storage.Bucketer) []T {
+func Values[T any](tx storage.Bucketer) ([]T, error) {
 	vals, err := tx.Values()
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
 	out := make([]T, len(vals))
@@ -81,12 +82,12 @@ func Values[T any](tx storage.Bucketer) []T {
 	for i, data := range vals {
 		value, err := Decode[T](tx.Encoding(), data)
 		if err != nil {
-			log.Error(err)
+			return nil, err
 		}
 		out[i] = value
 	}
 
-	return out
+	return out, nil
 }
 
 func Get[T any](tx storage.Transactioner, key string) (T, error) {
