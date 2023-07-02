@@ -38,7 +38,7 @@ func New() (storage.Connection, error) {
 
 	m := &InMemory{
 		data:     maps.New[string, []byte](nil).Eventful(ctx, 10),
-		encoding: encoding.NewCoder(key.Simple, value.CBOR),
+		encoding: encoding.NewCoder(key.Binary, value.CBOR),
 
 		pfxMutex: maps.New[string, sync.Locker](nil).Safe(),
 		cancel:   cancel,

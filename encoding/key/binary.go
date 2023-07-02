@@ -14,7 +14,8 @@ type binary struct {
 func BinaryCoder() encoding.KeyCoder {
 	return &binary{
 		encoding.Constants{
-			Delimiter:      "\x1C",
+			BucketKey:      [2]string{"\x1D", "\x1F"},
+			Delimiter:      "\x1E",
 			TransactionKey: "TX\x1C",
 		},
 	}
@@ -41,16 +42,16 @@ func (c binary) DecodeKey(key string) []string {
 }
 
 func (c binary) EncodeBucket(key ...string) string {
-	return fmt.Sprintf("[%s]", strings.Join(key, c.Delimiter))
+	return fmt.Sprintf("%s%s%s", c.BucketKey[0], strings.Join(key, c.Delimiter), c.BucketKey[1])
 }
 
 func (c binary) DecodeBucket(key ...string) []string {
 	keys := []string{}
 
 	for _, k := range key {
-		k = strings.Trim(k, "[]")
+		k = strings.Trim(k, c.BucketKey[0]+c.BucketKey[1])
 		for _, b := range strings.Split(k, c.Delimiter) {
-			keys = append(keys, strings.Trim(b, "[]"))
+			keys = append(keys, strings.Trim(b, c.BucketKey[0]+c.BucketKey[1]))
 		}
 	}
 

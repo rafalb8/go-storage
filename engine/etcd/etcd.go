@@ -44,7 +44,7 @@ type Etcd struct {
 }
 
 func New(opts ...EtcdOpts) (storage.Connection, error) {
-	etcd := &Etcd{encoding: encoding.NewCoder(key.Simple, value.JSON)}
+	etcd := &Etcd{encoding: encoding.NewCoder(key.Binary, value.CBOR)}
 
 	// Apply options
 	for _, opt := range opts {

@@ -3,6 +3,7 @@ package encoding
 type Constants struct {
 	Delimiter      string
 	TransactionKey string
+	BucketKey      [2]string // Leading and trailing delimiters
 }
 
 type CoderOpts func(*CoderPair)
