@@ -14,8 +14,15 @@ import "github.com/rafalb8/go-storage/engine/jsondb"
 func connect() {
     db, err := jsondb.New(jsondb.File("/path/to/file.json"))
     // handle err ...
+
+    // Set key in db
     db.Set("key", "value")
-    fmt.Println(db.Get("key"))
+
+    val, err := helpers.Get[string](db, "key")
+    // handle db err ...
+
+    // print value
+    fmt.Println(val)
 }
 ```
 
