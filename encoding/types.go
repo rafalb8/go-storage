@@ -1,13 +1,11 @@
 package encoding
 
-import "io"
-
 type Constants struct {
 	Delimiter      string
 	TransactionKey string
 }
 
-type CoderOpts func(*CustomCoder)
+type CoderOpts func(*CoderPair)
 
 // Encoder / Decoder interface
 type Coder interface {
@@ -31,15 +29,14 @@ type KeyCoder interface {
 type ValueCoder interface {
 	EncodeValue(val any) ([]byte, error)
 	DecodeValue(data []byte, val any) error
-
-	EncodeBody(val any) (io.Reader, error)
-	DecodeBody(r io.Reader, val any) error
 }
 
+// Interface for custom EncodeValue implementation
 type CustomValueEncoder interface {
 	EncodeValue(coder ValueCoder) ([]byte, error)
 }
 
+// Interface for custom DecodeValue implementation
 type CustomValueDecoder interface {
 	DecodeValue(coder ValueCoder, data []byte) error
 }

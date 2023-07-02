@@ -1,10 +1,8 @@
 package value
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 
 	"github.com/rafalb8/go-storage/encoding"
 )
@@ -16,8 +14,8 @@ func JSONCoder() encoding.ValueCoder {
 	return &jsonCoder{}
 }
 
-// Option for CustomCoder
-func JSON(c *encoding.CustomCoder) {
+// Option for CoderPair
+func JSON(c *encoding.CoderPair) {
 	c.ValueCoder = JSONCoder()
 }
 
@@ -37,14 +35,4 @@ func (c jsonCoder) DecodeValue(data []byte, val any) error {
 		}
 	}
 	return err
-}
-
-func (c jsonCoder) EncodeBody(val any) (io.Reader, error) {
-	buf := &bytes.Buffer{}
-	err := json.NewEncoder(buf).Encode(val)
-	return buf, err
-}
-
-func (c jsonCoder) DecodeBody(r io.Reader, val any) error {
-	return json.NewDecoder(r).Decode(val)
 }

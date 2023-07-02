@@ -20,7 +20,7 @@ func SimpleCoder() encoding.KeyCoder {
 	}
 }
 
-func Simple(c *encoding.CustomCoder) {
+func Simple(c *encoding.CoderPair) {
 	c.KeyCoder = SimpleCoder()
 }
 
@@ -32,15 +32,7 @@ func (c simple) EncodeKey(key ...string) string {
 	if len(key) == 0 {
 		return ""
 	}
-
-	keys := make([]string, 0, len(key))
-	for _, k := range key {
-		if k != "" {
-			keys = append(keys, k)
-		}
-	}
-
-	return strings.Join(keys, c.Delimiter)
+	return strings.Join(key, c.Delimiter)
 }
 
 func (c simple) DecodeKey(key string) []string {
@@ -58,10 +50,7 @@ func (c simple) DecodeBucket(key ...string) []string {
 	for _, k := range key {
 		k = strings.Trim(k, "[]")
 		for _, b := range strings.Split(k, c.Delimiter) {
-			b = strings.Trim(b, "[]")
-			if b != "" {
-				keys = append(keys, b)
-			}
+			keys = append(keys, strings.Trim(b, "[]"))
 		}
 	}
 

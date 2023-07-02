@@ -1,9 +1,7 @@
 package value
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 
 	"github.com/fxamacker/cbor/v2"
 	"github.com/rafalb8/go-storage/encoding"
@@ -32,8 +30,8 @@ func CBORCoder() encoding.ValueCoder {
 	}
 }
 
-// Option for CustomCoder
-func CBOR(c *encoding.CustomCoder) {
+// Option for CoderPair
+func CBOR(c *encoding.CoderPair) {
 	c.ValueCoder = CBORCoder()
 }
 
@@ -51,14 +49,4 @@ func (c cborCoder) DecodeValue(data []byte, val any) error {
 	}
 
 	return cbor.Unmarshal(data, val)
-}
-
-func (c cborCoder) EncodeBody(val any) (io.Reader, error) {
-	buf := &bytes.Buffer{}
-	err := c.EncMode.NewEncoder(buf).Encode(val)
-	return buf, err
-}
-
-func (c cborCoder) DecodeBody(r io.Reader, val any) error {
-	return cbor.NewDecoder(r).Decode(val)
 }

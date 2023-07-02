@@ -2,14 +2,13 @@ package encoding
 
 import "log"
 
-// Custom type Encoder/Decoder wrapper
-type CustomCoder struct {
+type CoderPair struct {
 	KeyCoder
 	ValueCoder
 }
 
 func NewCoder(opts ...CoderOpts) Coder {
-	coder := &CustomCoder{}
+	coder := &CoderPair{}
 
 	for _, opt := range opts {
 		opt(coder)
@@ -26,14 +25,14 @@ func NewCoder(opts ...CoderOpts) Coder {
 	return coder
 }
 
-func (c CustomCoder) EncodeValue(val any) ([]byte, error) {
+func (c CoderPair) EncodeValue(val any) ([]byte, error) {
 	if val, ok := val.(CustomValueEncoder); ok {
 		return val.EncodeValue(c.ValueCoder)
 	}
 	return c.ValueCoder.EncodeValue(val)
 }
 
-func (c CustomCoder) DecodeValue(data []byte, val any) error {
+func (c CoderPair) DecodeValue(data []byte, val any) error {
 	if val, ok := val.(CustomValueDecoder); ok {
 		return val.DecodeValue(c.ValueCoder, data)
 	}
