@@ -54,7 +54,7 @@ func New(opts ...JsonDBOpts) (storage.Connection, error) {
 
 	// Apply options
 	for _, opt := range opts {
-		err := opt(nil)
+		err := opt(j)
 		if err != nil {
 			return nil, err
 		}
