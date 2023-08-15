@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/fxamacker/cbor/v2 v2.4.0
-	github.com/rafalb8/go-maps v0.1.0
+	github.com/rafalb8/go-maps v0.1.1
 	go.etcd.io/etcd/api/v3 v3.5.9
 	go.etcd.io/etcd/client/v3 v3.5.9
 	go.etcd.io/etcd/server/v3 v3.5.9
@@ -68,5 +68,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
-
-replace github.com/rafalb8/go-maps => ../go-maps
