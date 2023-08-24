@@ -4,13 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/rafalb8/go-storage/engine/jsondb"
 	"github.com/rafalb8/go-storage/helpers"
 	"github.com/rafalb8/go-storage/internal"
+	"github.com/rafalb8/go-storage/engine/memory"
 )
 
 var (
-	db     = internal.Must(jsondb.New(jsondb.File("/tmp/github.com/rafalb8/go-storage/test.json")))
+	db     = internal.Must(memory.New())
 	bucket = db.Bucket("env", "123", "element")
 )
 
